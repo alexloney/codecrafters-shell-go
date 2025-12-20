@@ -18,6 +18,10 @@ func main() {
 		command, _ := bufio.NewReader(os.Stdin).ReadString('\n')
 
 		trimmed_command := strings.TrimRight(command, "\r\n")
+		if trimmed_command == "exit" {
+			break
+		}
+
 		fmt.Print(trimmed_command)
 		fmt.Println(": command not found")
 	}
