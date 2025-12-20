@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+// Inteface
 type ICommand interface {
 	Execute()
 	GetType() string
