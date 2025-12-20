@@ -97,7 +97,7 @@ func (u Unknown) GetPath() string {
 func (u Unknown) Execute() {
 	path := u.GetPath()
 	if path != "" {
-		command := exec.Command(path, u.Args...)
+		command := exec.Command(u.Name, u.Args...)
 		command.Stdout = os.Stdout
 		command.Stderr = os.Stderr
 		err := command.Start()
