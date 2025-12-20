@@ -7,6 +7,59 @@ import (
 	"strings"
 )
 
+type ICommand interface {
+	Execute()
+	GetType() string
+}
+
+type Exit struct {
+	ICommand
+}
+
+func (e Exit) Execute() {
+	os.Exit(0)
+}
+func (e Exit) GetType() string {
+	return "exit is a shell builtin"
+}
+
+type Echo struct {
+	ICommand
+	Args []string
+}
+
+func (e Echo) Execute() {
+	fmt.Println(strings.Join(e.Args, " "))
+}
+func (e Echo) GetType() string {
+	return "echo is a shell builtin"
+}
+
+type Type struct {
+	ICommand
+	Args []string
+}
+
+func (t Type) Execute() {
+	command := createCommand(t.Args)
+	fmt.Println(command.GetType())
+}
+func (t Type) GetType() string {
+	return "type is a shell builtin"
+}
+
+type Unknown struct {
+	ICommand
+	Name string
+}
+
+func (u Unknown) Execute() {
+	fmt.Printf("%s: command not found\n", u.Name)
+}
+func (u Unknown) GetType() string {
+	return fmt.Sprintf("%s: not found", u.Name)
+}
+
 // Display the shell prompt, maybe in the future this
 // could display user customizable prompts
 func displayPrompt() {
@@ -25,26 +78,32 @@ func tokenize(input string) []string {
 	return strings.Split(input, " ")
 }
 
+func createCommand(tokens []string) ICommand {
+	if len(tokens) == 0 {
+		return nil
+	}
+
+	switch tokens[0] {
+	case "exit":
+		return Exit{}
+	case "echo":
+		return Echo{Args: tokens[1:]}
+	case "type":
+		return Type{Args: tokens[1:]}
+	default:
+		return Unknown{Name: tokens[0]}
+	}
+}
+
 // Given a tokenized input, handle processing the command.
 // Returns false if the shell should exit, true otherwise.
-func handleInput(input []string) bool {
+func handleInput(input []string) {
 	if len(input) == 0 {
-		return true
+		return
 	}
 
-	command := input[0]
-	args := input[1:]
-
-	if command == "exit" {
-		return false
-	} else if command == "echo" {
-		fmt.Println(strings.Join(args, " "))
-		return true
-	} else {
-		fmt.Printf("%s: command not found\n", command)
-	}
-
-	return true
+	command := createCommand(input)
+	command.Execute()
 }
 
 func main() {
@@ -52,8 +111,6 @@ func main() {
 		displayPrompt()
 		command := fetchTrimmedInput()
 		tokens := tokenize(command)
-		if !handleInput(tokens) {
-			break
-		}
+		handleInput(tokens)
 	}
 }
