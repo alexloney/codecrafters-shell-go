@@ -208,6 +208,10 @@ func handleInput(input []string, stdout string, append_stdout bool, stderr strin
 }
 
 func main() {
+	h := History{}
+	filepath, _ := h.GetHistoryFilePath()
+	os.Remove(filepath)
+
 	for true {
 		displayPrompt()
 		command := fetchTrimmedInput()
