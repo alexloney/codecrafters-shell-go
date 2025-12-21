@@ -45,14 +45,8 @@ func tokenize(input string) ([]string, string, bool, string, bool) {
 				}
 
 				if inBigQuotes {
-					if input[i+1] != '"' && input[i+1] != '\\' && input[i+1] != '`' && input[i+1] != '$' && input[i+1] != 'n' {
+					if input[i+1] != '"' && input[i+1] != '\\' && input[i+1] != '`' && input[i+1] != '$' && input[i+1] != '\n' {
 						currentToken += string(char)
-					}
-
-					if input[i+1] == 'n' {
-						currentToken += "\n"
-						i++
-						continue
 					}
 				}
 
