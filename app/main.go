@@ -32,7 +32,7 @@ func tokenize(input string) []string {
 	for i := 0; i < len(input); i++ {
 		char := input[i]
 
-		if char == '\\' && (inQuotes || inBigQuotes) {
+		if char == '\\' {
 			if i+1 < len(input) && (input[i+1] == '"' || input[i+1] == '\'' || input[i+1] == '\\' || input[i+1] == ' ') {
 				// Skip the backslash and add the next character literally
 				currentToken += string(input[i+1])
