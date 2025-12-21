@@ -16,7 +16,25 @@ func displayPrompt() {
 // Obtain the users input from stdin and trim any trailing newlines
 func fetchTrimmedInput() string {
 	command, _ := bufio.NewReader(os.Stdin).ReadString('\n')
-	return strings.TrimRight(command, "\r\n")
+	input := strings.TrimRight(command, "\r\n")
+
+	// Log history
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println("Error retrieving home directory:", err)
+		return ""
+	}
+	file, err := os.OpenFile(homeDir+"/.simple_shell_history", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("Error opening history file:", err)
+		return input
+	}
+	defer file.Close()
+	if _, err := file.WriteString(input + "\n"); err != nil {
+		fmt.Println("Error writing to history file:", err)
+	}
+
+	return input
 }
 
 // First pass at tokenizing a string by splitting on spaces.
@@ -133,6 +151,8 @@ func createCommand(tokens []string) ICommand {
 		return Pwd{Args: tokens[1:]}
 	case "cd":
 		return Cd{Args: tokens[1:]}
+	case "history":
+		return History{Args: tokens[1:]}
 	// case "cat":
 	// 	return Cat{Args: tokens[1:]}
 	default:
