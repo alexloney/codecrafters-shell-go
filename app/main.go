@@ -21,8 +21,10 @@ func fetchTrimmedInput() string {
 
 // First pass at tokenizing a string by splitting on spaces.
 // This is a naive implementation and does not handle quotes or escaped spaces.
-func tokenize(input string) []string {
+func tokenize(input string) ([]string, string, string) {
 	var output []string
+	stdout := ""
+	stderr := ""
 
 	inQuotes := false
 	inBigQuotes := false
@@ -67,7 +69,25 @@ func tokenize(input string) []string {
 		output = append(output, currentToken)
 	}
 
-	return output
+	for i := 0; i < len(output); i++ {
+		token := output[i]
+
+		if token == "1>" || token == ">" {
+			if i+1 < len(output) {
+				stdout = output[i+1]
+				// Remove these two tokens from output
+				output = append(output[:i], output[i+2:]...)
+			}
+		} else if token == "2>" {
+			if i+1 < len(output) {
+				stderr = output[i+1]
+				// Remove these two tokens from output
+				output = append(output[:i], output[i+2:]...)
+			}
+		}
+	}
+
+	return output, stdout, stderr
 }
 
 func createCommand(tokens []string) ICommand {
@@ -95,24 +115,52 @@ func createCommand(tokens []string) ICommand {
 
 // Given a tokenized input, handle processing the command.
 // Returns false if the shell should exit, true otherwise.
-func handleInput(input []string) {
+func handleInput(input []string, stdout string, stderr string) {
 	if len(input) == 0 {
 		return
 	}
 
 	command := createCommand(input)
+
+	old_stdout := os.Stdout
+	old_stderr := os.Stderr
+	if stdout != "" {
+		f, err := os.OpenFile(stdout, os.O_RDWR|os.O_CREATE, 0644)
+		if err != nil {
+			fmt.Println("Error opening file for stdout redirection:", err)
+			return
+		}
+		os.Stdout = f
+		defer f.Close()
+		// command.SetStdout(f)
+	}
+
+	if stderr != "" {
+		f, err := os.OpenFile(stderr, os.O_RDWR|os.O_CREATE, 0644)
+		if err != nil {
+			fmt.Println("Error opening file for stderr redirection:", err)
+			return
+		}
+		os.Stderr = f
+		defer f.Close()
+		// command.SetStderr(f)
+	}
+
 	command.Execute()
+
+	os.Stdout = old_stdout
+	os.Stderr = old_stderr
 }
 
 func main() {
 	for true {
 		displayPrompt()
 		command := fetchTrimmedInput()
-		tokens := tokenize(command)
+		tokens, stdout, stderr := tokenize(command)
 		// fmt.Println(tokens)
 		// for _, token := range tokens {
 		// 	fmt.Println("Token:'", token, "'")
 		// }
-		handleInput(tokens)
+		handleInput(tokens, stdout, stderr)
 	}
 }
