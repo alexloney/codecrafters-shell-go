@@ -73,7 +73,7 @@ func (c Cd) Execute() {
 		}
 		os.Setenv("OLDPWD", current_dir)
 	} else {
-		fmt.Println("cd: " + c.Args[0] + " no such file or directory")
+		fmt.Println("cd: " + c.Args[0] + ": no such file or directory")
 	}
 
 }
