@@ -23,7 +23,7 @@ func (c Cat) Execute() {
 	for _, fileName := range c.Args {
 		data, err := os.ReadFile(fileName)
 		if err != nil {
-			fmt.Println("cat: " + fileName + ": No such file or directory")
+			fmt.Fprintln(os.Stderr, "cat: "+fileName+": No such file or directory")
 			continue
 		}
 		fmt.Print(string(data))
