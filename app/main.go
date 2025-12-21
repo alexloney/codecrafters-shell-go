@@ -21,10 +21,12 @@ func fetchTrimmedInput() string {
 
 // First pass at tokenizing a string by splitting on spaces.
 // This is a naive implementation and does not handle quotes or escaped spaces.
-func tokenize(input string) ([]string, string, string) {
+func tokenize(input string) ([]string, string, bool, string, bool) {
 	var output []string
 	stdout := ""
+	append_stdout := false
 	stderr := ""
+	append_stderr := false
 
 	inQuotes := false
 	inBigQuotes := false
@@ -78,16 +80,30 @@ func tokenize(input string) ([]string, string, string) {
 				// Remove these two tokens from output
 				output = append(output[:i], output[i+2:]...)
 			}
+		} else if token == ">>" || token == "1>>" {
+			if i+1 < len(output) {
+				stdout = output[i+1]
+				append_stdout = true
+				// Remove these two tokens from output
+				output = append(output[:i], output[i+2:]...)
+			}
 		} else if token == "2>" {
 			if i+1 < len(output) {
 				stderr = output[i+1]
 				// Remove these two tokens from output
 				output = append(output[:i], output[i+2:]...)
 			}
+		} else if token == "2>>" {
+			if i+1 < len(output) {
+				stderr = output[i+1]
+				append_stderr = true
+				// Remove these two tokens from output
+				output = append(output[:i], output[i+2:]...)
+			}
 		}
 	}
 
-	return output, stdout, stderr
+	return output, stdout, append_stdout, stderr, append_stderr
 }
 
 func createCommand(tokens []string) ICommand {
@@ -115,7 +131,7 @@ func createCommand(tokens []string) ICommand {
 
 // Given a tokenized input, handle processing the command.
 // Returns false if the shell should exit, true otherwise.
-func handleInput(input []string, stdout string, stderr string) {
+func handleInput(input []string, stdout string, append_stdout bool, stderr string, append_stderr bool) {
 	if len(input) == 0 {
 		return
 	}
@@ -125,7 +141,11 @@ func handleInput(input []string, stdout string, stderr string) {
 	old_stdout := os.Stdout
 	old_stderr := os.Stderr
 	if stdout != "" {
-		f, err := os.OpenFile(stdout, os.O_RDWR|os.O_CREATE, 0644)
+		flags := os.O_RDWR | os.O_CREATE
+		if append_stdout {
+			flags |= os.O_APPEND
+		}
+		f, err := os.OpenFile(stdout, flags, 0644)
 		if err != nil {
 			fmt.Println("Error opening file for stdout redirection:", err)
 			return
@@ -136,7 +156,11 @@ func handleInput(input []string, stdout string, stderr string) {
 	}
 
 	if stderr != "" {
-		f, err := os.OpenFile(stderr, os.O_RDWR|os.O_CREATE, 0644)
+		flags := os.O_RDWR | os.O_CREATE
+		if append_stderr {
+			flags |= os.O_APPEND
+		}
+		f, err := os.OpenFile(stderr, flags, 0644)
 		if err != nil {
 			fmt.Println("Error opening file for stderr redirection:", err)
 			return
@@ -156,11 +180,11 @@ func main() {
 	for true {
 		displayPrompt()
 		command := fetchTrimmedInput()
-		tokens, stdout, stderr := tokenize(command)
+		tokens, stdout, append_stdout, stderr, append_stderr := tokenize(command)
 		// fmt.Println(tokens)
 		// for _, token := range tokens {
 		// 	fmt.Println("Token:'", token, "'")
 		// }
-		handleInput(tokens, stdout, stderr)
+		handleInput(tokens, stdout, append_stdout, stderr, append_stderr)
 	}
 }
