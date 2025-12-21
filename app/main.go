@@ -97,7 +97,7 @@ func tokenize(input string) ([]string, string, bool, string, bool) {
 			if i+1 < len(output) {
 				stderr = output[i+1]
 				append_stderr = true
-				// Remove these two tokens from output
+				// Remove these two tokens  from output
 				output = append(output[:i], output[i+2:]...)
 			}
 		}
