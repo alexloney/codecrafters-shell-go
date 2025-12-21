@@ -39,9 +39,23 @@ func tokenize(input string) ([]string, string, bool, string, bool) {
 		if char == '\\' {
 			// If the next character exists, add it literally
 			if i+1 < len(input) {
-				if inQuotes || inBigQuotes {
+				// Only add the backslash if we are inside quotes
+				if inQuotes {
 					currentToken += string(char)
 				}
+
+				if inBigQuotes {
+					if input[i+1] != '"' && input[i+1] != '\\' && input[i+1] != '`' && input[i+1] != '$' && input[i+1] != 'n' {
+						currentToken += string(char)
+					}
+
+					if input[i+1] == 'n' {
+						currentToken += "\n"
+						i++
+						continue
+					}
+				}
+
 				currentToken += string(input[i+1])
 				i++ // Skip the next character as we've already processed it
 			} else {
