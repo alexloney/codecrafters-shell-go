@@ -106,8 +106,8 @@ func createCommand(tokens []string) ICommand {
 		return Pwd{Args: tokens[1:]}
 	case "cd":
 		return Cd{Args: tokens[1:]}
-	case "cat":
-		return Cat{Args: tokens[1:]}
+	// case "cat":
+	// 	return Cat{Args: tokens[1:]}
 	default:
 		return Unknown{Name: tokens[0], Args: tokens[1:]}
 	}
