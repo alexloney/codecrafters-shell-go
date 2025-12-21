@@ -32,25 +32,23 @@ func tokenize(input string) []string {
 	for i := 0; i < len(input); i++ {
 		char := input[i]
 
+		if char == '\\' {
+			// If the next character exists, add it literally
+			if i+1 < len(input) {
+				currentToken += string(input[i+1])
+				i++ // Skip the next character as we've already processed it
+			} else {
+				// If there's no next character, just add the backslash
+				currentToken += string(char)
+			}
+			continue
+		}
+
 		// If we hit a double-quote, while not in a single-quote, then process it
 		if char == '"' && !inQuotes {
-
-			// If we are in big quotes and the last character was a backslash, treat this as an escaped quote
-			if inBigQuotes && currentToken[len(currentToken)-1] == '\\' {
-				currentToken = currentToken[:len(currentToken)-1] + string(char)
-				continue
-			}
-
-			// Otherwise, toggle the inBigQuotes flag
 			inBigQuotes = !inBigQuotes
 			continue
 		} else if char == '\'' && !inBigQuotes {
-
-			if inQuotes && currentToken[len(currentToken)-1] == '\\' {
-				currentToken = currentToken[:len(currentToken)-1] + string(char)
-				continue
-			}
-
 			inQuotes = !inQuotes
 			continue
 		}
@@ -112,7 +110,7 @@ func main() {
 		tokens := tokenize(command)
 		// fmt.Println(tokens)
 		// for _, token := range tokens {
-		// 	fmt.Println("Token:", token)
+		// 	fmt.Println("Token:'", token, "'")
 		// }
 		handleInput(tokens)
 	}
