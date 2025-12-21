@@ -32,16 +32,17 @@ func tokenize(input string) []string {
 	for i := 0; i < len(input); i++ {
 		char := input[i]
 
-		if char == '\\' {
-			// If the next character exists, add it literally
-			if i+1 < len(input) {
+		if char == '\\' && (inQuotes || inBigQuotes) {
+			if i+1 < len(input) && (input[i+1] == '"' || input[i+1] == '\'' || input[i+1] == '\\' || input[i+1] == ' ') {
+				// Skip the backslash and add the next character literally
 				currentToken += string(input[i+1])
 				i++ // Skip the next character as we've already processed it
+				continue
 			} else {
-				// If there's no next character, just add the backslash
+				// If the next character is not escapable, just add the backslash
 				currentToken += string(char)
+				continue
 			}
-			continue
 		}
 
 		// If we hit a double-quote, while not in a single-quote, then process it
