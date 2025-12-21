@@ -39,6 +39,9 @@ func tokenize(input string) ([]string, string, bool, string, bool) {
 		if char == '\\' {
 			// If the next character exists, add it literally
 			if i+1 < len(input) {
+				if inQuotes || inBigQuotes {
+					currentToken += string(char)
+				}
 				currentToken += string(input[i+1])
 				i++ // Skip the next character as we've already processed it
 			} else {
