@@ -22,7 +22,55 @@ func fetchTrimmedInput() string {
 // First pass at tokenizing a string by splitting on spaces.
 // This is a naive implementation and does not handle quotes or escaped spaces.
 func tokenize(input string) []string {
-	return strings.Split(input, " ")
+	var output []string
+
+	inQuotes := false
+	inBigQuotes := false
+	currentToken := ""
+	// var currentToken strings.Builder
+
+	for i := 0; i < len(input); i++ {
+		char := input[i]
+
+		// If we hit a double-quote, while not in a single-quote, then process it
+		if char == '"' && !inQuotes {
+
+			// If we are in big quotes and the last character was a backslash, treat this as an escaped quote
+			if inBigQuotes && currentToken[len(currentToken)-1] == '\\' {
+				currentToken = currentToken[:len(currentToken)-1] + string(char)
+				continue
+			}
+
+			// Otherwise, toggle the inBigQuotes flag
+			inBigQuotes = !inBigQuotes
+			continue
+		} else if char == '\'' && !inBigQuotes {
+
+			if inQuotes && currentToken[len(currentToken)-1] == '\\' {
+				currentToken = currentToken[:len(currentToken)-1] + string(char)
+				continue
+			}
+
+			inQuotes = !inQuotes
+			continue
+		}
+
+		if char == ' ' && !inQuotes && !inBigQuotes {
+			if len(currentToken) > 0 {
+				output = append(output, currentToken)
+				currentToken = ""
+			}
+		} else {
+			currentToken += string(char)
+		}
+	}
+
+	if len(currentToken) > 0 {
+		output = append(output, currentToken)
+	}
+
+	return output
+	// return strings.Split(input, " ")
 }
 
 func createCommand(tokens []string) ICommand {
@@ -62,6 +110,10 @@ func main() {
 		displayPrompt()
 		command := fetchTrimmedInput()
 		tokens := tokenize(command)
+		// fmt.Println(tokens)
+		// for _, token := range tokens {
+		// 	fmt.Println("Token:", token)
+		// }
 		handleInput(tokens)
 	}
 }
