@@ -2,123 +2,10 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 )
-
-// Inteface
-type ICommand interface {
-	Execute()
-	GetType() string
-}
-
-type Exit struct {
-	ICommand
-}
-
-func (e Exit) Execute() {
-	os.Exit(0)
-}
-func (e Exit) GetType() string {
-	return "exit is a shell builtin"
-}
-
-type Echo struct {
-	ICommand
-	Args []string
-}
-
-func (e Echo) Execute() {
-	fmt.Println(strings.Join(e.Args, " "))
-}
-func (e Echo) GetType() string {
-	return "echo is a shell builtin"
-}
-
-type Type struct {
-	ICommand
-	Args []string
-}
-
-func (t Type) Execute() {
-	command := createCommand(t.Args)
-	fmt.Println(command.GetType())
-}
-func (t Type) GetType() string {
-	return "type is a shell builtin"
-}
-
-type Unknown struct {
-	ICommand
-	Name string
-	Args []string
-}
-
-func (u Unknown) isExecutable(path string) bool {
-	path, err := exec.LookPath(path)
-	if err != nil {
-		return false
-	}
-	return true
-}
-
-func (u Unknown) fileExists(path string) bool {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true
-	}
-	// Check if the error is specifically because the file does not exist
-	if errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-	// For other errors (like permission issues), you might want to handle them differently or return false
-	return false
-}
-func (u Unknown) GetPath() string {
-	path_separator := string(os.PathListSeparator)
-	file_separator := string(os.PathSeparator)
-	path := os.Getenv("PATH")
-
-	directories := strings.Split(path, path_separator)
-	for _, dir := range directories {
-		full_path := dir + file_separator + u.Name
-		if u.fileExists(full_path) {
-			if u.isExecutable(full_path) {
-				return filepath.Clean(full_path)
-			}
-		}
-	}
-	return ""
-}
-func (u Unknown) Execute() {
-	path := u.GetPath()
-	if path != "" {
-		command := exec.Command(u.Name, u.Args...)
-		command.Stdout = os.Stdout
-		command.Stderr = os.Stderr
-		err := command.Start()
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		command.Wait()
-		return
-	}
-	fmt.Printf("%s: command not found\n", u.Name)
-}
-func (u Unknown) GetType() string {
-	path := u.GetPath()
-	if path != "" {
-		return fmt.Sprintf("%s is %s", u.Name, path)
-	} else {
-		return fmt.Sprintf("%s: not found", u.Name)
-	}
-
-}
 
 // Display the shell prompt, maybe in the future this
 // could display user customizable prompts
@@ -150,6 +37,8 @@ func createCommand(tokens []string) ICommand {
 		return Echo{Args: tokens[1:]}
 	case "type":
 		return Type{Args: tokens[1:]}
+	case "pwd":
+		return Pwd{Args: tokens[1:]}
 	default:
 		return Unknown{Name: tokens[0], Args: tokens[1:]}
 	}
