@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type History struct {
@@ -11,34 +12,74 @@ type History struct {
 	Args []string
 }
 
-func (h History) Execute() {
+func (h History) GetHistoryFilePath() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Println("Error retrieving home directory:", err)
-		return
+		return "", err
 	}
+	return homeDir + "/.simple_shell_history", nil
+}
 
-	f, err := os.Open(homeDir + "/.simple_shell_history")
+func (h History) ReadHistoryLines() ([]string, error) {
+	historyFilePath, err := h.GetHistoryFilePath()
 	if err != nil {
-		fmt.Println("Error opening history file:", err)
-		return
+		return nil, err
 	}
-	// Ensure the file is closed when the function returns
+	f, err := os.Open(historyFilePath)
+	if err != nil {
+		return nil, err
+	}
 	defer f.Close()
 
-	// var lines []string
+	var lines []string
 	scanner := bufio.NewScanner(f)
-	// The scanner defaults to splitting by newlines (bufio.ScanLines)
-	i := 1
 	for scanner.Scan() {
-		fmt.Printf("    %d  %s\n", i, scanner.Text())
-		i++
-		// lines = append(lines, scanner.Text())
+		lines = append(lines, scanner.Text())
 	}
 
-	// Check for errors during the scan process
-	if err := scanner.Err(); err != nil {
+	return lines, nil
+}
+
+func (h History) DisplayFullHistory() {
+	lines, err := h.ReadHistoryLines()
+	if err != nil {
 		fmt.Println("Error reading history file:", err)
+		return
+	}
+	for i, line := range lines {
+		fmt.Printf("    %d  %s\n", i+1, line)
+	}
+}
+
+func (h History) DisplayLastNHistory(n int) {
+	lines, err := h.ReadHistoryLines()
+	if err != nil {
+		fmt.Println("Error reading history file:", err)
+		return
+	}
+	start := 0
+	if n < len(lines) {
+		start = len(lines) - n
+	}
+	for i := start; i < len(lines); i++ {
+		fmt.Printf("    %d  %s\n", i+1, lines[i])
+	}
+}
+
+func (h History) Execute() {
+	if len(h.Args) > 1 {
+		fmt.Println("history: too many arguments")
+		return
+	} else if len(h.Args) == 0 {
+		h.DisplayFullHistory()
+		return
+	} else if len(h.Args) == 1 {
+		n, err := strconv.Atoi(h.Args[0])
+		if err != nil || n <= 0 {
+			fmt.Println("history: invalid argument:", h.Args[0])
+			return
+		}
+		h.DisplayLastNHistory(n)
 		return
 	}
 }
