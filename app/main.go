@@ -68,7 +68,6 @@ func tokenize(input string) []string {
 	}
 
 	return output
-	// return strings.Split(input, " ")
 }
 
 func createCommand(tokens []string) ICommand {
