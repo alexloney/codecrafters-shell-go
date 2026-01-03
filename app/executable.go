@@ -37,7 +37,9 @@ func (u *Executable) Execute() error {
 		// cmd.Run() waits for the command to finish automatically
 		// If the command exits with non-zero, it returns an error.
 		// We usually just print it.
-		fmt.Fprintln(u.stderr, "Error executing command:", err)
+		if _, ok := err.(*exec.ExitError); !ok {
+			fmt.Fprintln(u.stderr, "Error executing command:", err)
+		}
 	}
 	return nil
 }

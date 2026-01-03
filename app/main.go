@@ -14,8 +14,7 @@ func displayPrompt() {
 }
 
 // Obtain the users input from stdin and trim any trailing newlines
-func fetchTrimmedInput() (string, error) {
-	reader := bufio.NewReader(os.Stdin)
+func fetchTrimmedInput(reader *bufio.Reader) (string, error) {
 	command, err := reader.ReadString('\n')
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error reading input:", err)
@@ -221,9 +220,11 @@ func handleInput(input []string, stdout string, append_stdout bool, stderr strin
 }
 
 func main() {
+	reader := bufio.NewReader(os.Stdin)
+
 	for {
 		displayPrompt()
-		command, err := fetchTrimmedInput()
+		command, err := fetchTrimmedInput(reader)
 		if err != nil {
 			// Gracefully exit on CTRL+D or read error
 			fmt.Println()
