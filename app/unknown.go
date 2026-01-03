@@ -84,6 +84,26 @@ func (u *Unknown) Execute() error {
 	fmt.Fprintf(u.stderr, "%s: command not found\n", u.Name)
 
 	return nil
+
+	/* Possible improvement, but I haven't gotten it to work yet
+	path, err := exec.LookPath(u.Name)
+	if err != nil {
+		fmt.Fprintf(u.stderr, "%s: command not found\n", u.Name)
+		return nil
+	}
+
+	command := exec.Command(path, u.Args...)
+	command.Stdin = u.stdin
+	command.Stdout = u.stdout
+	command.Stderr = u.stderr
+	err = command.Start()
+	if err != nil {
+		fmt.Fprintln(u.stderr, err)
+		return nil
+	}
+	command.Wait()
+	return nil
+	*/
 }
 func (u *Unknown) GetType() string {
 	path := u.GetPath()

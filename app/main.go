@@ -19,6 +19,9 @@ func fetchTrimmedInput() string {
 	input := strings.TrimRight(command, "\r\n")
 
 	// Log history
+	// This is not optimal as it opens and closes the file each time,
+	// but it's simple and works for now. An improvement would be to keep the file
+	// open and only close it on shell exit.
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Println("Error retrieving home directory:", err)
@@ -207,11 +210,7 @@ func handleInput(input []string, stdout string, append_stdout bool, stderr strin
 }
 
 func main() {
-	h := History{}
-	filepath, _ := h.GetHistoryFilePath()
-	os.Remove(filepath)
-
-	for true {
+	for {
 		displayPrompt()
 		command := fetchTrimmedInput()
 		tokens, stdout, append_stdout, stderr, append_stderr := tokenize(command)

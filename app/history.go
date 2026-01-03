@@ -67,6 +67,9 @@ func (h *History) DisplayFullHistory() {
 }
 
 func (h *History) DisplayLastNHistory(n int) {
+	// This is not optimal as it reads the entire file into memory,
+	// but works for this simple case. An improvement would be to
+	// see the end of the file and read backward or use a ring buffer.
 	lines, err := h.ReadHistoryLines()
 	if err != nil {
 		fmt.Fprintln(h.stderr, "Error reading history file:", err)
