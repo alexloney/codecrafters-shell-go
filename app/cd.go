@@ -2,11 +2,27 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 )
 
 type Cd struct {
-	Args []string
+	Args   []string
+	stdin  io.Reader
+	stdout io.Writer
+	stderr io.Writer
+}
+
+func (c *Cd) SetStdin(stdin io.Reader) {
+	c.stdin = stdin
+}
+
+func (c *Cd) SetStdout(stdout io.Writer) {
+	c.stdout = stdout
+}
+
+func (c *Cd) SetStderr(stderr io.Writer) {
+	c.stderr = stderr
 }
 
 func (c *Cd) DirExists(path string) bool {
@@ -18,64 +34,66 @@ func (c *Cd) DirExists(path string) bool {
 	return err == nil && info.IsDir()
 }
 
-func (c *Cd) Execute() {
+func (c *Cd) Execute() error {
 	// No path specified, return without changing directory
 	if len(c.Args) == 0 {
-		return
+		return nil
 	}
 
 	// Too many arguments, return without changing directory
 	if len(c.Args) > 1 {
-		return
+		return nil
 	}
 
 	current_dir, err := os.Getwd()
 	if err != nil {
-		fmt.Println("Error retrieving current directory:", err)
-		return
+		fmt.Fprintln(c.stderr, "Error retrieving current directory:", err)
+		return nil
 	}
 
 	// Special character, change to home directory
 	if c.Args[0] == "~" {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			fmt.Println("Error retrieving home directory:", err)
-			return
+			fmt.Fprintln(c.stderr, "Error retrieving home directory:", err)
+			return nil
 		}
 		err = os.Chdir(homeDir)
 		if err != nil {
-			fmt.Println("Error changing directory to home:", err)
+			fmt.Fprintln(c.stderr, "Error changing directory to home:", err)
 		}
 		os.Setenv("OLDPWD", current_dir)
-		return
+		return nil
 	}
 
 	if c.Args[0] == "-" {
 		prevDir := os.Getenv("OLDPWD")
 		if prevDir == "" {
-			fmt.Println("OLDPWD not set")
-			return
+			fmt.Fprintln(c.stderr, "OLDPWD not set")
+			return nil
 		}
 		err := os.Chdir(prevDir)
 		if err != nil {
-			fmt.Println("Error changing to previous directory:", err)
+			fmt.Fprintln(c.stderr, "Error changing to previous directory:", err)
 		}
 		os.Setenv("OLDPWD", current_dir)
-		return
+		return nil
 	}
 
 	if c.DirExists(c.Args[0]) {
 		err := os.Chdir(c.Args[0])
 		if err != nil {
-			fmt.Println("Error changing directory:", err)
-			return
+			fmt.Fprintln(c.stderr, "Error changing directory:", err)
+			return nil
 		}
 		os.Setenv("OLDPWD", current_dir)
 	} else {
-		fmt.Println("cd: " + c.Args[0] + ": No such file or directory")
+		fmt.Fprintln(c.stderr, "cd: "+c.Args[0]+": No such file or directory")
 	}
 
+	return nil
 }
+
 func (c *Cd) GetType() string {
 	return "cd is a shell builtin"
 }

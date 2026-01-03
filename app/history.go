@@ -3,12 +3,28 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 )
 
 type History struct {
-	Args []string
+	Args   []string
+	stdin  io.Reader
+	stdout io.Writer
+	stderr io.Writer
+}
+
+func (c *History) SetStdin(stdin io.Reader) {
+	c.stdin = stdin
+}
+
+func (c *History) SetStdout(stdout io.Writer) {
+	c.stdout = stdout
+}
+
+func (c *History) SetStderr(stderr io.Writer) {
+	c.stderr = stderr
 }
 
 func (h *History) GetHistoryFilePath() (string, error) {
@@ -42,18 +58,18 @@ func (h *History) ReadHistoryLines() ([]string, error) {
 func (h *History) DisplayFullHistory() {
 	lines, err := h.ReadHistoryLines()
 	if err != nil {
-		fmt.Println("Error reading history file:", err)
+		fmt.Fprintln(h.stderr, "Error reading history file:", err)
 		return
 	}
 	for i, line := range lines {
-		fmt.Printf("    %d  %s\n", i+1, line)
+		fmt.Fprintf(h.stdout, "    %d  %s\n", i+1, line)
 	}
 }
 
 func (h *History) DisplayLastNHistory(n int) {
 	lines, err := h.ReadHistoryLines()
 	if err != nil {
-		fmt.Println("Error reading history file:", err)
+		fmt.Fprintln(h.stderr, "Error reading history file:", err)
 		return
 	}
 	start := 0
@@ -61,26 +77,28 @@ func (h *History) DisplayLastNHistory(n int) {
 		start = len(lines) - n
 	}
 	for i := start; i < len(lines); i++ {
-		fmt.Printf("    %d  %s\n", i+1, lines[i])
+		fmt.Fprintf(h.stdout, "    %d  %s\n", i+1, lines[i])
 	}
 }
 
-func (h *History) Execute() {
+func (h *History) Execute() error {
 	if len(h.Args) > 1 {
-		fmt.Println("history: too many arguments")
-		return
+		fmt.Fprintln(h.stderr, "history: too many arguments")
+		return nil
 	} else if len(h.Args) == 0 {
 		h.DisplayFullHistory()
-		return
+		return nil
 	} else if len(h.Args) == 1 {
 		n, err := strconv.Atoi(h.Args[0])
 		if err != nil || n <= 0 {
-			fmt.Println("history: invalid argument:", h.Args[0])
-			return
+			fmt.Fprintln(h.stderr, "history: invalid argument:", h.Args[0])
+			return nil
 		}
 		h.DisplayLastNHistory(n)
-		return
+		return nil
 	}
+
+	return nil
 }
 func (h *History) GetType() string {
 	return "history is a shell builtin"

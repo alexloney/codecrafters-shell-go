@@ -153,8 +153,6 @@ func createCommand(tokens []string) Commander {
 		return &Cd{Args: tokens[1:]}
 	case "history":
 		return &History{Args: tokens[1:]}
-	// case "cat":
-	// 	return Cat{Args: tokens[1:]}
 	default:
 		return &Unknown{Name: tokens[0], Args: tokens[1:]}
 	}
@@ -169,8 +167,8 @@ func handleInput(input []string, stdout string, append_stdout bool, stderr strin
 
 	command := createCommand(input)
 
-	old_stdout := os.Stdout
-	old_stderr := os.Stderr
+	stdout_to_use := os.Stdout
+	stderr_to_use := os.Stderr
 	if stdout != "" {
 		flags := os.O_RDWR | os.O_CREATE
 		if append_stdout {
@@ -181,7 +179,7 @@ func handleInput(input []string, stdout string, append_stdout bool, stderr strin
 			fmt.Println("Error opening file for stdout redirection:", err)
 			return
 		}
-		os.Stdout = f
+		stdout_to_use = f
 		defer f.Close()
 		// command.SetStdout(f)
 	}
@@ -196,15 +194,16 @@ func handleInput(input []string, stdout string, append_stdout bool, stderr strin
 			fmt.Println("Error opening file for stderr redirection:", err)
 			return
 		}
-		os.Stderr = f
+		stderr_to_use = f
 		defer f.Close()
 		// command.SetStderr(f)
 	}
 
-	command.Execute()
+	command.SetStdin(os.Stdin)
+	command.SetStdout(stdout_to_use)
+	command.SetStderr(stderr_to_use)
 
-	os.Stdout = old_stdout
-	os.Stderr = old_stderr
+	command.Execute()
 }
 
 func main() {

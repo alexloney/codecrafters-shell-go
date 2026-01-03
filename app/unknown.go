@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,8 +12,23 @@ import (
 
 type Unknown struct {
 	Commander
-	Name string
-	Args []string
+	Name   string
+	Args   []string
+	stdin  io.Reader
+	stdout io.Writer
+	stderr io.Writer
+}
+
+func (c *Unknown) SetStdin(stdin io.Reader) {
+	c.stdin = stdin
+}
+
+func (c *Unknown) SetStdout(stdout io.Writer) {
+	c.stdout = stdout
+}
+
+func (c *Unknown) SetStderr(stderr io.Writer) {
+	c.stderr = stderr
 }
 
 func (u *Unknown) isExecutable(path string) bool {
@@ -51,7 +67,7 @@ func (u *Unknown) GetPath() string {
 	}
 	return ""
 }
-func (u *Unknown) Execute() {
+func (u *Unknown) Execute() error {
 	path := u.GetPath()
 	if path != "" {
 		command := exec.Command(u.Name, u.Args...)
@@ -59,13 +75,15 @@ func (u *Unknown) Execute() {
 		command.Stderr = os.Stderr
 		err := command.Start()
 		if err != nil {
-			fmt.Println(err)
-			return
+			fmt.Fprintln(u.stderr, err)
+			return nil
 		}
 		command.Wait()
-		return
+		return nil
 	}
-	fmt.Printf("%s: command not found\n", u.Name)
+	fmt.Fprintf(u.stderr, "%s: command not found\n", u.Name)
+
+	return nil
 }
 func (u *Unknown) GetType() string {
 	path := u.GetPath()
