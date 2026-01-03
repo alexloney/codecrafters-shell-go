@@ -2,27 +2,12 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 )
 
 type Pwd struct {
-	Args   []string
-	stdin  io.Reader
-	stdout io.Writer
-	stderr io.Writer
-}
-
-func (c *Pwd) SetStdin(stdin io.Reader) {
-	c.stdin = stdin
-}
-
-func (c *Pwd) SetStdout(stdout io.Writer) {
-	c.stdout = stdout
-}
-
-func (c *Pwd) SetStderr(stderr io.Writer) {
-	c.stderr = stderr
+	StandardIO
+	Args []string
 }
 
 func (p *Pwd) Execute() error {

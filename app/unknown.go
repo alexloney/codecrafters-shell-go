@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,24 +10,9 @@ import (
 )
 
 type Unknown struct {
-	Commander
-	Name   string
-	Args   []string
-	stdin  io.Reader
-	stdout io.Writer
-	stderr io.Writer
-}
-
-func (c *Unknown) SetStdin(stdin io.Reader) {
-	c.stdin = stdin
-}
-
-func (c *Unknown) SetStdout(stdout io.Writer) {
-	c.stdout = stdout
-}
-
-func (c *Unknown) SetStderr(stderr io.Writer) {
-	c.stderr = stderr
+	StandardIO
+	Name string
+	Args []string
 }
 
 func (u *Unknown) isExecutable(path string) bool {
@@ -68,49 +52,38 @@ func (u *Unknown) GetPath() string {
 	return ""
 }
 func (u *Unknown) Execute() error {
-	path := u.GetPath()
-	if path != "" {
-		command := exec.Command(u.Name, u.Args...)
-		command.Stdout = os.Stdout
-		command.Stderr = os.Stderr
-		err := command.Start()
-		if err != nil {
-			fmt.Fprintln(u.stderr, err)
-			return nil
-		}
-		command.Wait()
-		return nil
-	}
-	fmt.Fprintf(u.stderr, "%s: command not found\n", u.Name)
-
-	return nil
-
-	/* Possible improvement, but I haven't gotten it to work yet
+	// 1. LookPath checks if the command exists in PATH
 	path, err := exec.LookPath(u.Name)
 	if err != nil {
-		fmt.Fprintf(u.stderr, "%s: command not found\n", u.Name)
-		return nil
+		if errors.Is(err, exec.ErrDot) {
+			path = u.Name
+		} else {
+			fmt.Fprintf(u.stderr, "%s: command not found\n", u.Name)
+			return nil // Return nil so the shell doesn't crash, just logs error
+		}
 	}
 
-	command := exec.Command(path, u.Args...)
-	command.Stdin = u.stdin
-	command.Stdout = u.stdout
-	command.Stderr = u.stderr
-	err = command.Start()
-	if err != nil {
-		fmt.Fprintln(u.stderr, err)
-		return nil
+	// 2. Create the command using the found path
+	cmd := exec.Command(path, u.Args...)
+
+	// 3. Connect the I/O
+	cmd.Stdin = u.stdin
+	cmd.Stdout = u.stdout
+	cmd.Stderr = u.stderr
+
+	// 4. Run it
+	if err := cmd.Run(); err != nil {
+		// cmd.Run() waits for the command to finish automatically
+		// If the command exits with non-zero, it returns an error.
+		// We usually just print it.
+		fmt.Fprintln(u.stderr, "Error executing command:", err)
 	}
-	command.Wait()
 	return nil
-	*/
 }
 func (u *Unknown) GetType() string {
-	path := u.GetPath()
-	if path != "" {
-		return fmt.Sprintf("%s is %s", u.Name, path)
-	} else {
+	path, err := exec.LookPath(u.Name)
+	if err != nil {
 		return fmt.Sprintf("%s: not found", u.Name)
 	}
-
+	return fmt.Sprintf("%s is %s", u.Name, path)
 }

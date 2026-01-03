@@ -2,27 +2,12 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 )
 
 type Cd struct {
-	Args   []string
-	stdin  io.Reader
-	stdout io.Writer
-	stderr io.Writer
-}
-
-func (c *Cd) SetStdin(stdin io.Reader) {
-	c.stdin = stdin
-}
-
-func (c *Cd) SetStdout(stdout io.Writer) {
-	c.stdout = stdout
-}
-
-func (c *Cd) SetStderr(stderr io.Writer) {
-	c.stderr = stderr
+	StandardIO
+	Args []string
 }
 
 func (c *Cd) DirExists(path string) bool {

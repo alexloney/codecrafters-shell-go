@@ -3,28 +3,13 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
 	"strconv"
 )
 
 type History struct {
-	Args   []string
-	stdin  io.Reader
-	stdout io.Writer
-	stderr io.Writer
-}
-
-func (c *History) SetStdin(stdin io.Reader) {
-	c.stdin = stdin
-}
-
-func (c *History) SetStdout(stdout io.Writer) {
-	c.stdout = stdout
-}
-
-func (c *History) SetStderr(stderr io.Writer) {
-	c.stderr = stderr
+	StandardIO
+	Args []string
 }
 
 func (h *History) GetHistoryFilePath() (string, error) {

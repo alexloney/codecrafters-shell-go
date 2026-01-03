@@ -1,26 +1,11 @@
 package main
 
 import (
-	"io"
 	"os"
 )
 
 type Exit struct {
-	stdin  io.Reader
-	stdout io.Writer
-	stderr io.Writer
-}
-
-func (c *Exit) SetStdin(stdin io.Reader) {
-	c.stdin = stdin
-}
-
-func (c *Exit) SetStdout(stdout io.Writer) {
-	c.stdout = stdout
-}
-
-func (c *Exit) SetStderr(stderr io.Writer) {
-	c.stderr = stderr
+	StandardIO
 }
 
 func (e *Exit) Execute() error {

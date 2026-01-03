@@ -2,27 +2,12 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"strings"
 )
 
 type Echo struct {
-	Args   []string
-	stdin  io.Reader
-	stdout io.Writer
-	stderr io.Writer
-}
-
-func (c *Echo) SetStdin(stdin io.Reader) {
-	c.stdin = stdin
-}
-
-func (c *Echo) SetStdout(stdout io.Writer) {
-	c.stdout = stdout
-}
-
-func (c *Echo) SetStderr(stderr io.Writer) {
-	c.stderr = stderr
+	StandardIO
+	Args []string
 }
 
 func (e *Echo) Execute() error {
