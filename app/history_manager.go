@@ -22,7 +22,14 @@ func (h *HistoryManager) GetLinesSinceLastAppend() []string {
 	return lines
 }
 
-func (h *HistoryManager) GetHistoryFilePath() (string, error) {
+func GetHistoryFilePath() (string, error) {
+	// Use the default HISTFILE location
+	historyFile := os.Getenv("HISTFILE")
+	if historyFile != "" {
+		return historyFile, nil
+	}
+
+	// If HISTFILE is not set, default to ~/.simple_shell_history
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -31,11 +38,10 @@ func (h *HistoryManager) GetHistoryFilePath() (string, error) {
 }
 
 func NewHistoryManager() (*HistoryManager, error) {
-	homeDir, err := os.UserHomeDir()
+	path, err := GetHistoryFilePath()
 	if err != nil {
 		return nil, err
 	}
-	path := homeDir + "/.simple_shell_history"
 
 	hm := &HistoryManager{
 		filePath: path,

@@ -189,8 +189,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Error initializing history manager:", err)
 		return
 	}
-	historyManager.clear() // Clear existing history to pass CodeCrafters tests
-	historyFilePath, _ := historyManager.GetHistoryFilePath()
+	// historyManager.clear() // Clear existing history to pass CodeCrafters tests
+	historyFilePath, _ := GetHistoryFilePath()
 
 	// Initialize the Readline instance
 	rl, err := readline.NewEx(&readline.Config{
