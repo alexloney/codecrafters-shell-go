@@ -135,28 +135,28 @@ func tokenize(input string) ([]string, string, bool, string, bool) {
 	return output, stdout, append_stdout, stderr, append_stderr
 }
 
-func createCommand(tokens []string) ICommand {
+func createCommand(tokens []string) Commander {
 	if len(tokens) == 0 {
 		return nil
 	}
 
 	switch tokens[0] {
 	case "exit":
-		return Exit{}
+		return &Exit{}
 	case "echo":
-		return Echo{Args: tokens[1:]}
+		return &Echo{Args: tokens[1:]}
 	case "type":
-		return Type{Args: tokens[1:]}
+		return &Type{Args: tokens[1:]}
 	case "pwd":
-		return Pwd{Args: tokens[1:]}
+		return &Pwd{Args: tokens[1:]}
 	case "cd":
-		return Cd{Args: tokens[1:]}
+		return &Cd{Args: tokens[1:]}
 	case "history":
-		return History{Args: tokens[1:]}
+		return &History{Args: tokens[1:]}
 	// case "cat":
 	// 	return Cat{Args: tokens[1:]}
 	default:
-		return Unknown{Name: tokens[0], Args: tokens[1:]}
+		return &Unknown{Name: tokens[0], Args: tokens[1:]}
 	}
 }
 

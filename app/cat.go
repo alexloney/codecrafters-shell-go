@@ -6,11 +6,10 @@ import (
 )
 
 type Cat struct {
-	ICommand
 	Args []string
 }
 
-func (c Cat) DirExists(path string) bool {
+func (c *Cat) DirExists(path string) bool {
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		return false // Path does not exist
@@ -19,7 +18,7 @@ func (c Cat) DirExists(path string) bool {
 	return err == nil && info.IsDir()
 }
 
-func (c Cat) Execute() {
+func (c *Cat) Execute() {
 	for _, fileName := range c.Args {
 		data, err := os.ReadFile(fileName)
 		if err != nil {
@@ -29,6 +28,6 @@ func (c Cat) Execute() {
 		fmt.Print(string(data))
 	}
 }
-func (c Cat) GetType() string {
+func (c *Cat) GetType() string {
 	return "cat is a shell builtin"
 }

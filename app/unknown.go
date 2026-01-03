@@ -10,12 +10,12 @@ import (
 )
 
 type Unknown struct {
-	ICommand
+	Commander
 	Name string
 	Args []string
 }
 
-func (u Unknown) isExecutable(path string) bool {
+func (u *Unknown) isExecutable(path string) bool {
 	path, err := exec.LookPath(path)
 	if err != nil {
 		return false
@@ -23,7 +23,7 @@ func (u Unknown) isExecutable(path string) bool {
 	return true
 }
 
-func (u Unknown) fileExists(path string) bool {
+func (u *Unknown) fileExists(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {
 		return true
@@ -35,7 +35,7 @@ func (u Unknown) fileExists(path string) bool {
 	// For other errors (like permission issues), you might want to handle them differently or return false
 	return false
 }
-func (u Unknown) GetPath() string {
+func (u *Unknown) GetPath() string {
 	path_separator := string(os.PathListSeparator)
 	file_separator := string(os.PathSeparator)
 	path := os.Getenv("PATH")
@@ -51,7 +51,7 @@ func (u Unknown) GetPath() string {
 	}
 	return ""
 }
-func (u Unknown) Execute() {
+func (u *Unknown) Execute() {
 	path := u.GetPath()
 	if path != "" {
 		command := exec.Command(u.Name, u.Args...)
@@ -67,7 +67,7 @@ func (u Unknown) Execute() {
 	}
 	fmt.Printf("%s: command not found\n", u.Name)
 }
-func (u Unknown) GetType() string {
+func (u *Unknown) GetType() string {
 	path := u.GetPath()
 	if path != "" {
 		return fmt.Sprintf("%s is %s", u.Name, path)

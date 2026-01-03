@@ -1,6 +1,6 @@
 package main
 
-type ICommand interface {
+type Commander interface {
 	Execute()
 	GetType() string
 }

@@ -6,11 +6,10 @@ import (
 )
 
 type Pwd struct {
-	ICommand
 	Args []string
 }
 
-func (p Pwd) Execute() {
+func (p *Pwd) Execute() {
 	dir, err := os.Getwd()
 	if err != nil {
 		fmt.Println("Error retrieving current directory:", err)
@@ -18,6 +17,6 @@ func (p Pwd) Execute() {
 	}
 	fmt.Println(dir)
 }
-func (p Pwd) GetType() string {
+func (p *Pwd) GetType() string {
 	return "pwd is a shell builtin"
 }

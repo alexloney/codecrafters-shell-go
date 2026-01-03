@@ -8,11 +8,10 @@ import (
 )
 
 type History struct {
-	ICommand
 	Args []string
 }
 
-func (h History) GetHistoryFilePath() (string, error) {
+func (h *History) GetHistoryFilePath() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -20,7 +19,7 @@ func (h History) GetHistoryFilePath() (string, error) {
 	return homeDir + "/.simple_shell_history", nil
 }
 
-func (h History) ReadHistoryLines() ([]string, error) {
+func (h *History) ReadHistoryLines() ([]string, error) {
 	historyFilePath, err := h.GetHistoryFilePath()
 	if err != nil {
 		return nil, err
@@ -40,7 +39,7 @@ func (h History) ReadHistoryLines() ([]string, error) {
 	return lines, nil
 }
 
-func (h History) DisplayFullHistory() {
+func (h *History) DisplayFullHistory() {
 	lines, err := h.ReadHistoryLines()
 	if err != nil {
 		fmt.Println("Error reading history file:", err)
@@ -51,7 +50,7 @@ func (h History) DisplayFullHistory() {
 	}
 }
 
-func (h History) DisplayLastNHistory(n int) {
+func (h *History) DisplayLastNHistory(n int) {
 	lines, err := h.ReadHistoryLines()
 	if err != nil {
 		fmt.Println("Error reading history file:", err)
@@ -66,7 +65,7 @@ func (h History) DisplayLastNHistory(n int) {
 	}
 }
 
-func (h History) Execute() {
+func (h *History) Execute() {
 	if len(h.Args) > 1 {
 		fmt.Println("history: too many arguments")
 		return
@@ -83,6 +82,6 @@ func (h History) Execute() {
 		return
 	}
 }
-func (h History) GetType() string {
+func (h *History) GetType() string {
 	return "history is a shell builtin"
 }

@@ -6,11 +6,10 @@ import (
 )
 
 type Cd struct {
-	ICommand
 	Args []string
 }
 
-func (c Cd) DirExists(path string) bool {
+func (c *Cd) DirExists(path string) bool {
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		return false // Path does not exist
@@ -19,7 +18,7 @@ func (c Cd) DirExists(path string) bool {
 	return err == nil && info.IsDir()
 }
 
-func (c Cd) Execute() {
+func (c *Cd) Execute() {
 	// No path specified, return without changing directory
 	if len(c.Args) == 0 {
 		return
@@ -77,6 +76,6 @@ func (c Cd) Execute() {
 	}
 
 }
-func (c Cd) GetType() string {
+func (c *Cd) GetType() string {
 	return "cd is a shell builtin"
 }
