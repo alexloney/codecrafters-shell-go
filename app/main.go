@@ -14,8 +14,14 @@ func displayPrompt() {
 }
 
 // Obtain the users input from stdin and trim any trailing newlines
-func fetchTrimmedInput() string {
-	command, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+func fetchTrimmedInput() (string, error) {
+	reader := bufio.NewReader(os.Stdin)
+	command, err := reader.ReadString('\n')
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error reading input:", err)
+		return "", err
+	}
+
 	input := strings.TrimRight(command, "\r\n")
 
 	// Log history
@@ -24,20 +30,20 @@ func fetchTrimmedInput() string {
 	// open and only close it on shell exit.
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Println("Error retrieving home directory:", err)
-		return ""
+		fmt.Fprintln(os.Stderr, "Error retrieving home directory:", err)
+		return "", err
 	}
 	file, err := os.OpenFile(homeDir+"/.simple_shell_history", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		fmt.Println("Error opening history file:", err)
-		return input
+		fmt.Fprintln(os.Stderr, "Error opening history file:", err)
+		return input, nil
 	}
 	defer file.Close()
 	if _, err := file.WriteString(input + "\n"); err != nil {
-		fmt.Println("Error writing to history file:", err)
+		fmt.Fprintln(os.Stderr, "Error writing to history file:", err)
 	}
 
-	return input
+	return input, nil
 }
 
 func tokenize(input string) ([]string, string, bool, string, bool) {
@@ -217,7 +223,12 @@ func handleInput(input []string, stdout string, append_stdout bool, stderr strin
 func main() {
 	for {
 		displayPrompt()
-		command := fetchTrimmedInput()
+		command, err := fetchTrimmedInput()
+		if err != nil {
+			// Gracefully exit on CTRL+D or read error
+			fmt.Println()
+			break
+		}
 		tokens, stdout, appendStdout, stderr, appendStderr := tokenize(command)
 		handleInput(tokens, stdout, appendStdout, stderr, appendStderr)
 	}

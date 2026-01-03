@@ -62,6 +62,9 @@ func (c *Cd) Execute() error {
 			fmt.Fprintln(c.stderr, "Error changing to previous directory:", err)
 		}
 		os.Setenv("OLDPWD", current_dir)
+
+		// POSIX requirement to print the new directory when using "cd -"
+		fmt.Fprintln(c.stdout, prevDir)
 		return nil
 	}
 
