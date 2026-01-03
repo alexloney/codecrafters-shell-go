@@ -69,11 +69,34 @@ func (h *History) DisplayLastNHistory(n int) {
 	}
 }
 
+func (h *History) AppendHistoryFile(filename string) error {
+	historyFilePath, err := h.GetHistoryFilePath()
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(historyFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	in, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	scanner := bufio.NewScanner(in)
+	for scanner.Scan() {
+		_, err := f.WriteString(scanner.Text() + "\n")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (h *History) Execute() error {
-	if len(h.Args) > 1 {
-		fmt.Fprintln(h.stderr, "history: too many arguments")
-		return nil
-	} else if len(h.Args) == 0 {
+	if len(h.Args) == 0 {
 		h.DisplayFullHistory()
 		return nil
 	} else if len(h.Args) == 1 {
@@ -84,6 +107,11 @@ func (h *History) Execute() error {
 		}
 		h.DisplayLastNHistory(n)
 		return nil
+	} else if len(h.Args) == 2 && h.Args[0] == "-r" {
+		err := h.AppendHistoryFile(h.Args[1])
+		if err != nil {
+			fmt.Fprintln(h.stderr, "history: error reading file:", err)
+		}
 	}
 
 	return nil

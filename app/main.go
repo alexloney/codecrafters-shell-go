@@ -184,13 +184,8 @@ func handleInput(input []string, stdout string, append_stdout bool, stderr strin
 }
 
 func main() {
-	// Setup the history file path
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error retrieving home directory:", err)
-		return
-	}
-	historyFilePath := homeDir + "/.simple_shell_history"
+	history := &History{}
+	historyFilePath, _ := history.GetHistoryFilePath()
 
 	os.Remove(historyFilePath) // Needed to pass the CodeCrafters tests
 
