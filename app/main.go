@@ -162,7 +162,7 @@ func createCommand(tokens []string) Commander {
 	case "history":
 		return &History{Args: tokens[1:]}
 	default:
-		return &Unknown{Name: tokens[0], Args: tokens[1:]}
+		return &Executable{Name: tokens[0], Args: tokens[1:]}
 	}
 }
 
