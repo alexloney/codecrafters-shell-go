@@ -112,7 +112,7 @@ func tokenize(input string) ([]string, string, bool, string, bool) {
 	return args, stdout, appendStdout, stderr, appendStderr
 }
 
-func createCommand(tokens []string) Commander {
+func createCommand(tokens []string, historyManager *HistoryManager) Commander {
 	if len(tokens) == 0 {
 		return nil
 	}
@@ -123,13 +123,13 @@ func createCommand(tokens []string) Commander {
 	case "echo":
 		return &Echo{Args: tokens[1:]}
 	case "type":
-		return &Type{Args: tokens[1:]}
+		return &Type{Args: tokens[1:], Manager: historyManager}
 	case "pwd":
 		return &Pwd{Args: tokens[1:]}
 	case "cd":
 		return &Cd{Args: tokens[1:]}
 	case "history":
-		return &History{Args: tokens[1:]}
+		return &History{Args: tokens[1:], Manager: historyManager}
 	default:
 		return &Executable{Name: tokens[0], Args: tokens[1:]}
 	}
@@ -137,12 +137,12 @@ func createCommand(tokens []string) Commander {
 
 // Given a tokenized input, handle processing the command.
 // Returns false if the shell should exit, true otherwise.
-func handleInput(input []string, stdout string, append_stdout bool, stderr string, append_stderr bool) {
+func handleInput(input []string, historyManager *HistoryManager, stdout string, append_stdout bool, stderr string, append_stderr bool) {
 	if len(input) == 0 {
 		return
 	}
 
-	command := createCommand(input)
+	command := createCommand(input, historyManager)
 
 	stdout_to_use := os.Stdout
 	stderr_to_use := os.Stderr
@@ -184,10 +184,13 @@ func handleInput(input []string, stdout string, append_stdout bool, stderr strin
 }
 
 func main() {
-	history := &History{}
-	historyFilePath, _ := history.GetHistoryFilePath()
-
-	os.Remove(historyFilePath) // Needed to pass the CodeCrafters tests
+	historyManager, err := NewHistoryManager()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error initializing history manager:", err)
+		return
+	}
+	historyManager.clear() // Clear existing history to pass CodeCrafters tests
+	historyFilePath, _ := historyManager.GetHistoryFilePath()
 
 	// Initialize the Readline instance
 	rl, err := readline.NewEx(&readline.Config{
@@ -223,8 +226,9 @@ func main() {
 		if command == "" {
 			continue
 		}
+		historyManager.Add(command)
 
 		tokens, stdout, appendStdout, stderr, appendStderr := tokenize(command)
-		handleInput(tokens, stdout, appendStdout, stderr, appendStderr)
+		handleInput(tokens, historyManager, stdout, appendStdout, stderr, appendStderr)
 	}
 }

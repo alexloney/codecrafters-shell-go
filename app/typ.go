@@ -6,11 +6,12 @@ import (
 
 type Type struct {
 	StandardIO
-	Args []string
+	Args    []string
+	Manager *HistoryManager
 }
 
 func (t *Type) Execute() error {
-	command := createCommand(t.Args)
+	command := createCommand(t.Args, t.Manager)
 	if command != nil {
 		fmt.Fprintln(t.stdout, command.GetType())
 	}
