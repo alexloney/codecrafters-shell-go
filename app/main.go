@@ -183,6 +183,20 @@ func handleInput(input []string, historyManager *HistoryManager, stdout string, 
 	command.Execute()
 }
 
+type BellCompleter struct {
+	Completer readline.AutoCompleter
+}
+
+func (b *BellCompleter) Do(line []rune, pos int) (newLine [][]rune, length int) {
+	newLine, length = b.Completer.Do(line, pos)
+
+	if len(newLine) == 0 {
+		fmt.Print("\a")
+	}
+
+	return newLine, length
+}
+
 func getBinaries() []readline.PrefixCompleterInterface {
 	var items []readline.PrefixCompleterInterface
 
@@ -218,11 +232,15 @@ func main() {
 
 	completer := readline.NewPrefixCompleter(getBinaries()...)
 
+	finalCompleter := &BellCompleter{
+		Completer: completer,
+	}
+
 	// Initialize the Readline instance
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:       "$ ",
 		HistoryFile:  historyFilePath,
-		AutoComplete: completer,
+		AutoComplete: finalCompleter,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error initializing readline:", err)
