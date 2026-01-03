@@ -40,47 +40,46 @@ func fetchTrimmedInput() string {
 	return input
 }
 
-// First pass at tokenizing a string by splitting on spaces.
-// This is a naive implementation and does not handle quotes or escaped spaces.
 func tokenize(input string) ([]string, string, bool, string, bool) {
-	var output []string
-	stdout := ""
-	append_stdout := false
-	stderr := ""
-	append_stderr := false
+	// Return values
+	var args []string
+	var stdout string
+	var appendStdout bool
+	var stderr string
+	var appendStderr bool
+
+	// Intermediate storage for the raw split
+	var rawTokens []string
+
+	// Use strings.Builder for efficient concatenation
+	var currentToken strings.Builder
 
 	inQuotes := false
 	inBigQuotes := false
-	currentToken := ""
-	// var currentToken strings.Builder
 
+	// --- PHASE 1: Lexical Analysis (Split by spaces, handle quotes) ---
 	for i := 0; i < len(input); i++ {
 		char := input[i]
 
 		if char == '\\' {
-			// If the next character exists, add it literally
 			if i+1 < len(input) {
-				// Only add the backslash if we are inside quotes
 				if inQuotes {
-					currentToken += string(char)
+					currentToken.WriteByte(char)
 				}
-
 				if inBigQuotes {
-					if input[i+1] != '"' && input[i+1] != '\\' && input[i+1] != '`' && input[i+1] != '$' && input[i+1] != '\n' {
-						currentToken += string(char)
+					next := input[i+1]
+					if next != '"' && next != '\\' && next != '`' && next != '$' && next != '\n' {
+						currentToken.WriteByte(char)
 					}
 				}
-
-				currentToken += string(input[i+1])
-				i++ // Skip the next character as we've already processed it
+				currentToken.WriteByte(input[i+1])
+				i++
 			} else {
-				// If there's no next character, just add the backslash
-				currentToken += string(char)
+				currentToken.WriteByte(char)
 			}
 			continue
 		}
 
-		// If we hit a double-quote, while not in a single-quote, then process it
 		if char == '"' && !inQuotes {
 			inBigQuotes = !inBigQuotes
 			continue
@@ -90,52 +89,58 @@ func tokenize(input string) ([]string, string, bool, string, bool) {
 		}
 
 		if char == ' ' && !inQuotes && !inBigQuotes {
-			if len(currentToken) > 0 {
-				output = append(output, currentToken)
-				currentToken = ""
+			if currentToken.Len() > 0 {
+				rawTokens = append(rawTokens, currentToken.String())
+				currentToken.Reset()
 			}
 		} else {
-			currentToken += string(char)
+			currentToken.WriteByte(char)
 		}
 	}
 
-	if len(currentToken) > 0 {
-		output = append(output, currentToken)
+	// Capture the final token if it exists
+	if currentToken.Len() > 0 {
+		rawTokens = append(rawTokens, currentToken.String())
 	}
 
-	for i := 0; i < len(output); i++ {
-		token := output[i]
+	// --- PHASE 2: Redirection Processing ---
+	// Iterate through rawTokens. If we see a redirection symbol,
+	// consume the NEXT token as the file, and do NOT add to args.
+	for i := 0; i < len(rawTokens); i++ {
+		token := rawTokens[i]
 
-		if token == "1>" || token == ">" {
-			if i+1 < len(output) {
-				stdout = output[i+1]
-				// Remove these two tokens from output
-				output = append(output[:i], output[i+2:]...)
+		switch token {
+		case "1>", ">":
+			if i+1 < len(rawTokens) {
+				stdout = rawTokens[i+1]
+				appendStdout = false
+				i++ // Skip the filename so it isn't added to args
 			}
-		} else if token == ">>" || token == "1>>" {
-			if i+1 < len(output) {
-				stdout = output[i+1]
-				append_stdout = true
-				// Remove these two tokens from output
-				output = append(output[:i], output[i+2:]...)
+		case ">>", "1>>":
+			if i+1 < len(rawTokens) {
+				stdout = rawTokens[i+1]
+				appendStdout = true
+				i++
 			}
-		} else if token == "2>" {
-			if i+1 < len(output) {
-				stderr = output[i+1]
-				// Remove these two tokens from output
-				output = append(output[:i], output[i+2:]...)
+		case "2>":
+			if i+1 < len(rawTokens) {
+				stderr = rawTokens[i+1]
+				appendStderr = false
+				i++
 			}
-		} else if token == "2>>" {
-			if i+1 < len(output) {
-				stderr = output[i+1]
-				append_stderr = true
-				// Remove these two tokens  from output
-				output = append(output[:i], output[i+2:]...)
+		case "2>>":
+			if i+1 < len(rawTokens) {
+				stderr = rawTokens[i+1]
+				appendStderr = true
+				i++
 			}
+		default:
+			// If it's not a redirection operator or file, it's a command argument
+			args = append(args, token)
 		}
 	}
 
-	return output, stdout, append_stdout, stderr, append_stderr
+	return args, stdout, appendStdout, stderr, appendStderr
 }
 
 func createCommand(tokens []string) Commander {
@@ -213,11 +218,7 @@ func main() {
 	for {
 		displayPrompt()
 		command := fetchTrimmedInput()
-		tokens, stdout, append_stdout, stderr, append_stderr := tokenize(command)
-		// fmt.Println(tokens)
-		// for _, token := range tokens {
-		// 	fmt.Println("Token:'", token, "'")
-		// }
-		handleInput(tokens, stdout, append_stdout, stderr, append_stderr)
+		tokens, stdout, appendStdout, stderr, appendStderr := tokenize(command)
+		handleInput(tokens, stdout, appendStdout, stderr, appendStderr)
 	}
 }
