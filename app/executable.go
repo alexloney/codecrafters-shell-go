@@ -24,9 +24,10 @@ func (u *Executable) Execute() error {
 		}
 	}
 
+	path = u.Name // Needed to pass the CodeCrafters tests
+
 	// 2. Create the command using the found path
-	// cmd := exec.Command(path, u.Args...)
-	cmd := exec.Command(u.Name, u.Args...) // Needed to pass the CodeCrafters tests
+	cmd := exec.Command(path, u.Args...)
 
 	// 3. Connect the I/O
 	cmd.Stdin = u.stdin
