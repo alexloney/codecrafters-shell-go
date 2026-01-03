@@ -183,6 +183,30 @@ func handleInput(input []string, historyManager *HistoryManager, stdout string, 
 	command.Execute()
 }
 
+func getBinaries() []readline.PrefixCompleterInterface {
+	var items []readline.PrefixCompleterInterface
+
+	// Add Builtins
+	for _, cmd := range []string{"cd", "echo", "pwd", "exit", "type", "history"} {
+		items = append(items, readline.PcItem(cmd))
+	}
+
+	// Add System Binaries
+	path := os.Getenv("PATH")
+	for _, dir := range strings.Split(path, string(os.PathListSeparator)) {
+		files, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, file := range files {
+			if !file.IsDir() {
+				items = append(items, readline.PcItem(file.Name()))
+			}
+		}
+	}
+	return items
+}
+
 func main() {
 	historyManager, err := NewHistoryManager()
 	if err != nil {
@@ -192,11 +216,13 @@ func main() {
 	// historyManager.clear() // Clear existing history to pass CodeCrafters tests
 	historyFilePath, _ := GetHistoryFilePath()
 
+	completer := readline.NewPrefixCompleter(getBinaries()...)
+
 	// Initialize the Readline instance
 	rl, err := readline.NewEx(&readline.Config{
-		Prompt:      "$ ",
-		HistoryFile: historyFilePath,
-		// AutoComplete: completer, // Future enhancement for tab completion
+		Prompt:       "$ ",
+		HistoryFile:  historyFilePath,
+		AutoComplete: completer,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error initializing readline:", err)
