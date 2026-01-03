@@ -57,6 +57,7 @@ func (h *History) AppendHistoryToOutputFile(filename string) error {
 	defer f.Close()
 
 	for _, line := range lines {
+		fmt.Println("Appending line to file:", line)
 		_, err := f.WriteString(line + "\n")
 		if err != nil {
 			return err
@@ -76,6 +77,7 @@ func (h *History) WriteHistoryFile(filename string) error {
 	defer f.Close()
 
 	for _, line := range lines {
+		fmt.Println("Writing line to file:", line)
 		_, err := f.WriteString(line + "\n")
 		if err != nil {
 			return err
