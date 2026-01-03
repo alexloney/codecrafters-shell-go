@@ -95,6 +95,32 @@ func (h *History) AppendHistoryFile(filename string) error {
 	return nil
 }
 
+func (h *History) AppendHistoryToOutputFile(filename string) error {
+	historyFilePath, err := h.GetHistoryFilePath()
+	if err != nil {
+		return err
+	}
+	in, err := os.OpenFile(historyFilePath, os.O_RDONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(in)
+	for scanner.Scan() {
+		_, err := f.WriteString(scanner.Text() + "\n")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (h *History) WriteHistoryFile(filename string) error {
 	historyFilePath, err := h.GetHistoryFilePath()
 	if err != nil {
@@ -141,6 +167,11 @@ func (h *History) Execute() error {
 		}
 	} else if len(h.Args) == 2 && h.Args[0] == "-w" {
 		err := h.WriteHistoryFile(h.Args[1])
+		if err != nil {
+			fmt.Fprintln(h.stderr, "history: error reading file:", err)
+		}
+	} else if len(h.Args) == 2 && h.Args[0] == "-a" {
+		err := h.AppendHistoryToOutputFile(h.Args[1])
 		if err != nil {
 			fmt.Fprintln(h.stderr, "history: error reading file:", err)
 		}
