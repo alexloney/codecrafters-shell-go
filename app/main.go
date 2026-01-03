@@ -227,8 +227,6 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Error initializing history manager:", err)
 		return
 	}
-	// historyManager.clear() // Clear existing history to pass CodeCrafters tests
-	historyFilePath, _ := GetHistoryFilePath()
 
 	completer := readline.NewPrefixCompleter(getBinaries()...)
 
@@ -239,7 +237,7 @@ func main() {
 	// Initialize the Readline instance
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:       "$ ",
-		HistoryFile:  historyFilePath,
+		HistoryFile:  "", // Disable history to file saving
 		AutoComplete: finalCompleter,
 	})
 	if err != nil {
@@ -247,6 +245,10 @@ func main() {
 		return
 	}
 	defer rl.Close()
+
+	for _, cmd := range historyManager.GetLines() {
+		rl.SaveHistory(cmd)
+	}
 
 	for {
 		line, err := rl.Readline()

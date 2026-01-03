@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"sync"
 )
@@ -88,8 +89,18 @@ func (h *HistoryManager) Add(command string) {
 	// 1. Update In-Memory
 	h.lines = append(h.lines, command)
 
-	// Not writing to disk because the Readline library already does this.
-	// If we also write to disk here, we end up with duplicate entries.
+	// 2. Write-Through to Disk
+	// We open in Append mode so we don't rewrite the whole file
+	f, err := os.OpenFile(h.filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error writing history:", err)
+		return
+	}
+	defer f.Close()
+
+	if _, err := f.WriteString(command + "\n"); err != nil {
+		fmt.Fprintln(os.Stderr, "Error writing history:", err)
+	}
 }
 
 // GetLines returns the current history (fast, from memory)
