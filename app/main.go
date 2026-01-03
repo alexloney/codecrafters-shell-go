@@ -1,49 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
+
+	"github.com/chzyer/readline"
 )
-
-// Display the shell prompt, maybe in the future this
-// could display user customizable prompts
-func displayPrompt() {
-	fmt.Print("$ ")
-}
-
-// Obtain the users input from stdin and trim any trailing newlines
-func fetchTrimmedInput(reader *bufio.Reader) (string, error) {
-	command, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error reading input:", err)
-		return "", err
-	}
-
-	input := strings.TrimRight(command, "\r\n")
-
-	// Log history
-	// This is not optimal as it opens and closes the file each time,
-	// but it's simple and works for now. An improvement would be to keep the file
-	// open and only close it on shell exit.
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error retrieving home directory:", err)
-		return "", err
-	}
-	file, err := os.OpenFile(homeDir+"/.simple_shell_history", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error opening history file:", err)
-		return input, nil
-	}
-	defer file.Close()
-	if _, err := file.WriteString(input + "\n"); err != nil {
-		fmt.Fprintln(os.Stderr, "Error writing to history file:", err)
-	}
-
-	return input, nil
-}
 
 func tokenize(input string) ([]string, string, bool, string, bool) {
 	// Return values
@@ -220,16 +184,49 @@ func handleInput(input []string, stdout string, append_stdout bool, stderr strin
 }
 
 func main() {
-	reader := bufio.NewReader(os.Stdin)
+	// Setup the history file path
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error retrieving home directory:", err)
+		return
+	}
+	historyFilePath := homeDir + "/.simple_shell_history"
+
+	// Initialize the Readline instance
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt:      "$ ",
+		HistoryFile: historyFilePath,
+		// AutoComplete: completer, // Future enhancement for tab completion
+	})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error initializing readline:", err)
+		return
+	}
+	defer rl.Close()
 
 	for {
-		displayPrompt()
-		command, err := fetchTrimmedInput(reader)
+		line, err := rl.Readline()
 		if err != nil {
-			// Gracefully exit on CTRL+D or read error
-			fmt.Println()
+			if err == readline.ErrInterrupt {
+				if len(line) == 0 {
+					break // Exit on Ctrl+C with empty line
+				} else {
+					continue
+				}
+			} else if err == io.EOF {
+				break // Exit on Ctrl+D
+			}
 			break
 		}
+
+		// Cleanup input
+		command := strings.TrimSpace(line)
+
+		// If empty, just continue and re-prompt
+		if command == "" {
+			continue
+		}
+
 		tokens, stdout, appendStdout, stderr, appendStderr := tokenize(command)
 		handleInput(tokens, stdout, appendStdout, stderr, appendStderr)
 	}
