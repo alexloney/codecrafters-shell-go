@@ -230,7 +230,7 @@ func main() {
 
 	completer := readline.NewPrefixCompleter(getBinaries()...)
 
-	finalCompleter := &BellCompleter{
+	finalCompleter := &DoubleTabCompleter{
 		Completer: completer,
 	}
 
