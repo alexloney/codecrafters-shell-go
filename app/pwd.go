@@ -11,6 +11,8 @@ type Pwd struct {
 }
 
 func (p *Pwd) Execute() error {
+	p.ensureDefaults()
+
 	dir, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintln(p.stderr, "Error retrieving current directory:", err)

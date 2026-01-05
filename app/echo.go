@@ -11,6 +11,8 @@ type Echo struct {
 }
 
 func (e *Echo) Execute() error {
+	e.ensureDefaults()
+
 	fmt.Fprintln(e.stdout, strings.Join(e.Args, " "))
 	return nil
 }

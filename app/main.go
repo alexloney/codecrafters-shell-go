@@ -5,9 +5,175 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/chzyer/readline"
 )
+
+// Splits the input string by pipes, taking care to ignore pipes within quotes.
+func splitByPipe(input string) []string {
+	var commands []string
+	var current strings.Builder
+	inQuote := false
+	inDoubleQuote := false
+
+	for i := 0; i < len(input); i++ {
+		char := input[i]
+		if char == '\'' && !inDoubleQuote {
+			inQuote = !inQuote
+		} else if char == '"' && !inQuote {
+			inDoubleQuote = !inDoubleQuote
+		}
+
+		if char == '|' && !inQuote && !inDoubleQuote {
+			if current.Len() > 0 {
+				commands = append(commands, strings.TrimSpace(current.String()))
+				current.Reset()
+			}
+		} else {
+			current.WriteByte(char)
+		}
+	}
+	if current.Len() > 0 {
+		commands = append(commands, strings.TrimSpace(current.String()))
+	}
+	return commands
+}
+
+// Returns a fully configured Commander, ready to run
+func parseCommand(input string, historyMgr *HistoryManager) *PreparedCommand {
+	// tokenize handles parsing ">", ">>", etc.
+	tokens, stdoutPath, appendStdout, stderrPath, appendStderr := tokenize(input)
+
+	cmd := createCommand(tokens, historyMgr)
+	if cmd == nil {
+		return nil
+	}
+
+	pc := &PreparedCommand{
+		Command: cmd,
+	}
+
+	// Handle STDOUT Redirection
+	if stdoutPath != "" {
+		pc.StdoutRedirected = true
+		flags := os.O_RDWR | os.O_CREATE
+		if appendStdout {
+			flags |= os.O_APPEND
+		} else {
+			flags |= os.O_TRUNC
+		}
+		f, err := os.OpenFile(stdoutPath, flags, 0644)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error opening stdout file:", err)
+			return nil
+		}
+		cmd.SetStdout(f)
+	}
+
+	// Handle STDERR Redirection
+	if stderrPath != "" {
+		pc.StderrRedirected = true
+		flags := os.O_RDWR | os.O_CREATE
+		if appendStderr {
+			flags |= os.O_APPEND
+		} else {
+			flags |= os.O_TRUNC
+		}
+		f, err := os.OpenFile(stderrPath, flags, 0644)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error opening stderr file:", err)
+			return nil
+		}
+		cmd.SetStderr(f)
+	}
+
+	return pc
+}
+
+func executePipeline(rawInput string, historyMgr *HistoryManager) {
+	rawCommands := splitByPipe(rawInput)
+	if len(rawCommands) == 0 {
+		return
+	}
+
+	// Parse all commands
+	var preparedCmds []*PreparedCommand
+	for _, rawCmd := range rawCommands {
+		pc := parseCommand(rawCmd, historyMgr)
+		if pc == nil {
+			return
+		}
+		preparedCmds = append(preparedCmds, pc)
+	}
+
+	var wg sync.WaitGroup
+
+	// 'nextStdin' carries the Read-end of the pipe to the NEXT command.
+	// Initial input is os.Stdin.
+	var nextStdin io.Reader = os.Stdin
+
+	for i, pc := range preparedCmds {
+		cmd := pc.Command
+
+		// 1. SETUP STDIN
+		// Always take from the chain (either os.Stdin or previous pipe)
+		cmd.SetStdin(nextStdin)
+
+		// 2. SETUP STDOUT
+		var pipeWriter *os.File
+
+		// If this is NOT the last command, we usually output to a pipe...
+		if i < len(preparedCmds)-1 {
+			r, w, err := os.Pipe()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "Pipe error:", err)
+				return
+			}
+
+			// ...BUT if user already redirected to a file, we respect that.
+			if pc.StdoutRedirected {
+				// We keep the file as stdout.
+				// We must close the pipe writer immediately because nothing will write to it.
+				// The next command (r) will read EOF immediately.
+				w.Close()
+			} else {
+				// Normal case: pipe output
+				cmd.SetStdout(w)
+				pipeWriter = w // We must close this after execution
+			}
+
+			// The next command reads from this pipe
+			nextStdin = r
+
+		} else {
+			// This IS the last command.
+			// If no file redirection, output to console.
+			if !pc.StdoutRedirected {
+				cmd.SetStdout(os.Stdout)
+			}
+		}
+
+		// 3. SETUP STDERR
+		// Pipes usually don't carry stderr. Default to console if not redirected.
+		if !pc.StderrRedirected {
+			cmd.SetStderr(os.Stderr)
+		}
+
+		wg.Add(1)
+		go func(c Commander, w *os.File) {
+			defer wg.Done()
+			c.Execute()
+
+			// Close the pipe writer so the NEXT command stops waiting for input.
+			if w != nil {
+				w.Close()
+			}
+		}(cmd, pipeWriter)
+	}
+
+	wg.Wait()
+}
 
 func tokenize(input string) ([]string, string, bool, string, bool) {
 	// Return values
@@ -135,54 +301,6 @@ func createCommand(tokens []string, historyManager *HistoryManager) Commander {
 	}
 }
 
-// Given a tokenized input, handle processing the command.
-// Returns false if the shell should exit, true otherwise.
-func handleInput(input []string, historyManager *HistoryManager, stdout string, append_stdout bool, stderr string, append_stderr bool) {
-	if len(input) == 0 {
-		return
-	}
-
-	command := createCommand(input, historyManager)
-
-	stdout_to_use := os.Stdout
-	stderr_to_use := os.Stderr
-	if stdout != "" {
-		flags := os.O_RDWR | os.O_CREATE
-		if append_stdout {
-			flags |= os.O_APPEND
-		}
-		f, err := os.OpenFile(stdout, flags, 0644)
-		if err != nil {
-			fmt.Println("Error opening file for stdout redirection:", err)
-			return
-		}
-		stdout_to_use = f
-		defer f.Close()
-		// command.SetStdout(f)
-	}
-
-	if stderr != "" {
-		flags := os.O_RDWR | os.O_CREATE
-		if append_stderr {
-			flags |= os.O_APPEND
-		}
-		f, err := os.OpenFile(stderr, flags, 0644)
-		if err != nil {
-			fmt.Println("Error opening file for stderr redirection:", err)
-			return
-		}
-		stderr_to_use = f
-		defer f.Close()
-		// command.SetStderr(f)
-	}
-
-	command.SetStdin(os.Stdin)
-	command.SetStdout(stdout_to_use)
-	command.SetStderr(stderr_to_use)
-
-	command.Execute()
-}
-
 type BellCompleter struct {
 	Completer readline.AutoCompleter
 }
@@ -274,7 +392,8 @@ func main() {
 		}
 		historyManager.Add(command)
 
-		tokens, stdout, appendStdout, stderr, appendStderr := tokenize(command)
-		handleInput(tokens, historyManager, stdout, appendStdout, stderr, appendStderr)
+		executePipeline(command, historyManager)
+		// tokens, stdout, appendStdout, stderr, appendStderr := tokenize(command)
+		// handleInput(tokens, historyManager, stdout, appendStdout, stderr, appendStderr)
 	}
 }

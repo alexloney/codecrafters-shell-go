@@ -9,6 +9,8 @@ type Exit struct {
 }
 
 func (e *Exit) Execute() error {
+	e.ensureDefaults()
+
 	os.Exit(0)
 	return nil
 }

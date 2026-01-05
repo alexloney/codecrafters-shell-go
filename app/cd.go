@@ -20,6 +20,8 @@ func (c *Cd) DirExists(path string) bool {
 }
 
 func (c *Cd) Execute() error {
+	c.ensureDefaults()
+
 	// No path specified, return without changing directory
 	if len(c.Args) == 0 {
 		return nil

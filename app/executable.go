@@ -13,6 +13,8 @@ type Executable struct {
 }
 
 func (u *Executable) Execute() error {
+	u.ensureDefaults()
+
 	// 1. LookPath checks if the command exists in PATH
 	path, err := exec.LookPath(u.Name)
 	if err != nil {

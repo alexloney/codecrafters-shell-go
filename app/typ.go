@@ -11,6 +11,8 @@ type Type struct {
 }
 
 func (t *Type) Execute() error {
+	t.ensureDefaults()
+
 	command := createCommand(t.Args, t.Manager)
 	if command != nil {
 		fmt.Fprintln(t.stdout, command.GetType())

@@ -86,6 +86,8 @@ func (h *History) WriteHistoryFile(filename string) error {
 }
 
 func (h *History) Execute() error {
+	h.ensureDefaults()
+
 	if len(h.Args) == 0 {
 		h.DisplayFullHistory()
 		return nil
