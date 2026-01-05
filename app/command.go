@@ -1,9 +1,12 @@
 package main
 
-import "io"
+import (
+	"context"
+	"io"
+)
 
 type Commander interface {
-	Execute() error
+	Execute(ctx context.Context) error
 	GetType() string
 	SetStdin(io.Reader)
 	SetStdout(io.Writer)

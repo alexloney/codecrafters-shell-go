@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"strings"
 	"sync"
 
@@ -97,6 +99,26 @@ func executePipeline(rawInput string, historyMgr *HistoryManager) {
 		return
 	}
 
+	// Create a cancellable context
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Listen for SIGINT (CTRL+C) ONLY during this function execution
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+	defer signal.Stop(sigChan) // Stop listening when function exits
+
+	go func() {
+		select {
+		case <-sigChan:
+			// User hit CTRL+C
+			cancel()
+			fmt.Println()
+		case <-ctx.Done():
+			// Pipeline finished normally, stop waiting
+		}
+	}()
+
 	// Parse all commands
 	var preparedCmds []*PreparedCommand
 	for _, rawCmd := range rawCommands {
@@ -108,19 +130,13 @@ func executePipeline(rawInput string, historyMgr *HistoryManager) {
 	}
 
 	var wg sync.WaitGroup
-
-	// 'nextStdin' carries the Read-end of the pipe to the NEXT command.
-	// Initial input is os.Stdin.
 	var nextStdin io.Reader = os.Stdin
 
 	for i, pc := range preparedCmds {
 		cmd := pc.Command
 
-		// 1. SETUP STDIN
 		// Always take from the chain (either os.Stdin or previous pipe)
 		cmd.SetStdin(nextStdin)
-
-		// 2. SETUP STDOUT
 		var pipeWriter *os.File
 
 		// If this is NOT the last command, we usually output to a pipe...
@@ -163,7 +179,7 @@ func executePipeline(rawInput string, historyMgr *HistoryManager) {
 		wg.Add(1)
 		go func(c Commander, w *os.File) {
 			defer wg.Done()
-			c.Execute()
+			c.Execute(ctx)
 
 			// Close the pipe writer so the NEXT command stops waiting for input.
 			if w != nil {

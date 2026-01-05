@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 )
 
@@ -8,7 +9,7 @@ type Exit struct {
 	StandardIO
 }
 
-func (e *Exit) Execute() error {
+func (e *Exit) Execute(ctx context.Context) error {
 	e.ensureDefaults()
 
 	os.Exit(0)

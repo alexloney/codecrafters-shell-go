@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strings"
 )
@@ -10,7 +11,7 @@ type Echo struct {
 	Args []string
 }
 
-func (e *Echo) Execute() error {
+func (e *Echo) Execute(ctx context.Context) error {
 	e.ensureDefaults()
 
 	fmt.Fprintln(e.stdout, strings.Join(e.Args, " "))

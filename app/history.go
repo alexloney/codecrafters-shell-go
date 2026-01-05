@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -85,7 +86,7 @@ func (h *History) WriteHistoryFile(filename string) error {
 	return nil
 }
 
-func (h *History) Execute() error {
+func (h *History) Execute(ctx context.Context) error {
 	h.ensureDefaults()
 
 	if len(h.Args) == 0 {

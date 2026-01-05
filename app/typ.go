@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 )
 
@@ -10,7 +11,7 @@ type Type struct {
 	Manager *HistoryManager
 }
 
-func (t *Type) Execute() error {
+func (t *Type) Execute(ctx context.Context) error {
 	t.ensureDefaults()
 
 	command := createCommand(t.Args, t.Manager)

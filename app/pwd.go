@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 )
@@ -10,7 +11,7 @@ type Pwd struct {
 	Args []string
 }
 
-func (p *Pwd) Execute() error {
+func (p *Pwd) Execute(ctx context.Context) error {
 	p.ensureDefaults()
 
 	dir, err := os.Getwd()

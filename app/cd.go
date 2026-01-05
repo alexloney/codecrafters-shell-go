@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 )
@@ -19,7 +20,7 @@ func (c *Cd) DirExists(path string) bool {
 	return err == nil && info.IsDir()
 }
 
-func (c *Cd) Execute() error {
+func (c *Cd) Execute(ctx context.Context) error {
 	c.ensureDefaults()
 
 	// No path specified, return without changing directory

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -12,10 +13,10 @@ type Executable struct {
 	Args []string
 }
 
-func (u *Executable) Execute() error {
+func (u *Executable) Execute(ctx context.Context) error {
 	u.ensureDefaults()
 
-	// 1. LookPath checks if the command exists in PATH
+	// LookPath checks if the command exists in PATH
 	path, err := exec.LookPath(u.Name)
 	if err != nil {
 		if errors.Is(err, exec.ErrDot) {
@@ -28,19 +29,18 @@ func (u *Executable) Execute() error {
 
 	path = u.Name // Needed to pass the CodeCrafters tests
 
-	// 2. Create the command using the found path
-	cmd := exec.Command(path, u.Args...)
+	// If ctx is cancelled (Ctrl+C), this command will be killed automatically.
+	cmd := exec.CommandContext(ctx, path, u.Args...)
 
-	// 3. Connect the I/O
 	cmd.Stdin = u.stdin
 	cmd.Stdout = u.stdout
 	cmd.Stderr = u.stderr
 
-	// 4. Run it
 	if err := cmd.Run(); err != nil {
-		// cmd.Run() waits for the command to finish automatically
-		// If the command exits with non-zero, it returns an error.
-		// We usually just print it.
+		// Suppress "signal: killed" error if we caused it via Ctrl+C
+		if ctx.Err() == context.Canceled {
+			return nil
+		}
 		if _, ok := err.(*exec.ExitError); !ok {
 			fmt.Fprintln(u.stderr, "Error executing command:", err)
 		}
